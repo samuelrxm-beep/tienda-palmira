@@ -9,7 +9,7 @@ import {
 //  value: cantidad actual (número) · max: tope permitido
 //  onChange(n): nueva cantidad válida
 //  onMax(): se intentó superar el tope
-//  onMin(): se intentó bajar de 1 (botón − o escribir 0)
+//  onMin(): se intentó bajar de 1 (botón −, flecha ↓ o escribir 0)
 //  onInvalidPaste(): se intentó pegar texto que no son solo dígitos
 export default function QuantityInput({
   nombreProducto,
@@ -29,7 +29,7 @@ export default function QuantityInput({
   const [texto, setTexto] = useState(null);
   const mostrado = texto ?? String(actual);
 
-  // Punto único por donde pasa todo texto nuevo (escribir, pegar, flechas del teclado)
+  // Punto único por donde pasa todo texto nuevo (escribir o pegar)
   const aplicarTexto = (entrada) => {
     const resultado = evaluarEntrada(entrada, max);
 
@@ -40,7 +40,8 @@ export default function QuantityInput({
       case "invalido":
         break; // se ignora: el campo conserva lo que tenía
       case "minimo":
-        onMin?.(); // no acepta 0: conserva el valor anterior y avisa
+        setTexto(null); // no acepta 0: vuelve a mostrar el valor anterior
+        onMin?.();
         break;
       case "maximo":
         setTexto(null);
@@ -52,26 +53,6 @@ export default function QuantityInput({
         onChange(resultado.cantidad);
     }
   };
-
-  const handleKeyDown = (e) => {
-    if (esTeclaBloqueada(e)) e.preventDefault();
-  };
-
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const pegado = e.clipboardData.getData("text").trim();
-    if (soloDigitos(pegado)) {
-      aplicarTexto(pegado); // reemplaza el valor del campo
-    } else {
-      onInvalidPaste?.();
-    }
-  };
-
-  // Evita que la rueda del mouse cambie el valor sin querer
-  const handleWheel = (e) => e.currentTarget.blur();
-
-  // Al salir del campo, termina la edición y vuelve a mostrar la cantidad actual
-  const handleBlur = () => setTexto(null);
 
   const aumentar = () => {
     if (actual >= max) {
@@ -90,6 +71,37 @@ export default function QuantityInput({
     setTexto(null);
     onChange(actual - 1);
   };
+
+  const handleKeyDown = (e) => {
+    // Las flechas se comportan igual que los botones + y −
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      aumentar();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      disminuir();
+      return;
+    }
+    if (esTeclaBloqueada(e)) e.preventDefault();
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pegado = e.clipboardData.getData("text").trim();
+    if (soloDigitos(pegado)) {
+      aplicarTexto(pegado); // reemplaza el valor del campo
+    } else {
+      onInvalidPaste?.();
+    }
+  };
+
+  // Evita que la rueda del mouse cambie el valor sin querer
+  const handleWheel = (e) => e.currentTarget.blur();
+
+  // Al salir del campo, termina la edición y vuelve a mostrar la cantidad actual
+  const handleBlur = () => setTexto(null);
 
   return (
     <div
